@@ -1,4 +1,4 @@
-module github.com/pparrott/sample_bit_reader
+module github.com/pparrott/sample_bit_reducer
 
 go 1.24.3
 

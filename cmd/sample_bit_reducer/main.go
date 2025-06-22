@@ -6,8 +6,8 @@ import (
 	"os"
 	"runtime"
 
-	"github.com/pparrott/sample_bit_reader/pkg/audio"
-	"github.com/pparrott/sample_bit_reader/pkg/files"
+	"github.com/pparrott/sample_bit_reducer/pkg/audio"
+	"github.com/pparrott/sample_bit_reducer/pkg/files"
 )
 
 const targetBitRate = 16
