@@ -6,18 +6,14 @@ import (
 	"github.com/go-audio/wav"
 )
 
-type AudioFile struct {
-	Path string
-	Data []byte
-}
-
-func FilterBitRate(inputPaths <-chan string, outputFiles chan<- AudioFile, targetBitRate uint16) error {
-	defer close(outputFiles)
+func FilterBitRate(inputPaths <-chan string, outputFiles chan<- string, targetBitRate uint16) error {
 
 	for path := range inputPaths {
 		file, err := os.Open(path)
 
 		if err != nil {
+			infoLog.Printf("Failed to open file: %s", path)
+			continue
 		}
 
 		decoder := wav.NewDecoder(file)
@@ -27,16 +23,7 @@ func FilterBitRate(inputPaths <-chan string, outputFiles chan<- AudioFile, targe
 			continue
 		}
 		if decoder.BitDepth > targetBitRate {
-			data, err := os.ReadFile(path)
-			if err != nil {
-				infoLog.Printf("Error reading file %s: %v", path, err)
-				file.Close()
-				continue
-			}
-			outputFiles <- AudioFile{
-				Path: path,
-				Data: data,
-			}
+			outputFiles <- path
 		}
 
 		file.Close()

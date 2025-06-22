@@ -13,7 +13,7 @@ import (
 var infoLog = log.New(os.Stdout, "INFO: ", log.LstdFlags)
 var wg sync.WaitGroup
 
-func DownsampleFiles(filesCh <-chan AudioFile, targetBitRate uint16, numWorkers int) error {
+func DownsampleFiles(filesCh <-chan string, targetBitRate uint16, numWorkers int) error {
 	errCh := make(chan error, numWorkers)
 
 	for range numWorkers {
@@ -21,11 +21,16 @@ func DownsampleFiles(filesCh <-chan AudioFile, targetBitRate uint16, numWorkers 
 		go func() {
 			defer wg.Done()
 			for file := range filesCh {
-				if err := downsampleFromBytes(file, targetBitRate); err != nil {
+				data, err := os.ReadFile(file)
+				if err != nil {
 					errCh <- err
 					return
 				}
-				infoLog.Printf("Successfully downsampled: %s", file.Path)
+				if err := downsampleFromBytes(data, file, targetBitRate); err != nil {
+					errCh <- err
+					return
+				}
+				infoLog.Printf("Successfully downsampled: %s", file)
 			}
 		}()
 	}
@@ -41,8 +46,8 @@ func DownsampleFiles(filesCh <-chan AudioFile, targetBitRate uint16, numWorkers 
 	return nil
 }
 
-func downsampleFromBytes(file AudioFile, targetBitRate uint16) error {
-	decoder := wav.NewDecoder(bytes.NewReader(file.Data))
+func downsampleFromBytes(data []byte, file_path string, targetBitRate uint16) error {
+	decoder := wav.NewDecoder(bytes.NewReader(data))
 	buf, err := decoder.FullPCMBuffer()
 
 	if err != nil {
@@ -51,7 +56,7 @@ func downsampleFromBytes(file AudioFile, targetBitRate uint16) error {
 
 	buf = convertToRequiredBitDepth(buf, decoder.BitDepth, targetBitRate)
 
-	outFile, err := os.Create(file.Path)
+	outFile, err := os.Create(file_path)
 	if err != nil {
 		return err
 	}

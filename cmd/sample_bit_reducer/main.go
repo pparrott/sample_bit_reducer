@@ -29,18 +29,20 @@ func main() {
 	}
 
 	pathsCh := make(chan string)
-	filteredCh := make(chan audio.AudioFile)
+	filteredCh := make(chan string)
 
 	go func() {
 		if err := files.GetWavFilePaths(*rootFolder, pathsCh); err != nil {
 			log.Fatal(err)
 		}
+		close(pathsCh)
 	}()
 
 	go func() {
 		if err := audio.FilterBitRate(pathsCh, filteredCh, targetBitRate); err != nil {
 			log.Fatal(err)
 		}
+		close(filteredCh)
 	}()
 
 	if err := audio.DownsampleFiles(filteredCh, targetBitRate, runtime.NumCPU()); err != nil {
