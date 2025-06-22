@@ -3,6 +3,7 @@ package audio
 import (
 	"bytes"
 	"log"
+	"math/rand"
 	"os"
 	"sync"
 
@@ -74,8 +75,14 @@ func convertToRequiredBitDepth(buf *audio.IntBuffer, originalBitRate uint16, tar
 	shift := uint(originalBitRate - targetBitRate)
 
 	for i := range buf.Data {
-		buf.Data[i] = buf.Data[i] >> shift
+		buf.Data[i] = ditherSample(buf.Data[i], shift) >> shift
 	}
 
 	return buf
+}
+
+func ditherSample(sample int, bitShift uint) int {
+	ditherAmplitude := 1 << bitShift
+	ditherNoise := rand.Intn(ditherAmplitude) - (ditherAmplitude / 2)
+	return sample + ditherNoise
 }
