@@ -4,19 +4,39 @@ import (
 	"bytes"
 	"log"
 	"os"
+	"sync"
 
 	"github.com/go-audio/audio"
 	"github.com/go-audio/wav"
 )
 
 var infoLog = log.New(os.Stdout, "INFO: ", log.LstdFlags)
+var wg sync.WaitGroup
 
-func DownsampleFiles(files []AudioFile, targetBitRate uint16) error {
-	for _, file := range files {
-		if err := downsampleFromBytes(file, targetBitRate); err != nil {
-			return err
-		}
-		infoLog.Printf("Successfully downsampled: %s", file.Path)
+func DownsampleFiles(filesCh <-chan AudioFile, targetBitRate uint16, numWorkers int) error {
+	errCh := make(chan error, numWorkers)
+
+	for range numWorkers {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for file := range filesCh {
+				if err := downsampleFromBytes(file, targetBitRate); err != nil {
+					errCh <- err
+					return
+				}
+				infoLog.Printf("Successfully downsampled: %s", file.Path)
+			}
+		}()
+	}
+
+	go func() {
+		wg.Wait()
+		close(errCh)
+	}()
+
+	for err := range errCh {
+		return err
 	}
 	return nil
 }
